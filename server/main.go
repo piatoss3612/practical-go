@@ -7,6 +7,16 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
+)
+
+const (
+	MAX_ROOM_SIZE = 10
+)
+
+var (
+	rooms = make(map[string]*Room)
+	mu    = sync.Mutex{}
 )
 
 var helpMessage = `
@@ -82,11 +92,11 @@ func handleConnections(conns <-chan net.Conn) {
 			continue
 		}
 
-		go handleUser(&Client{nickname: "unknown", Conn: conn})
+		go handleClient(&Client{nickname: "unknown", Conn: conn})
 	}
 }
 
-func handleUser(client *Client) {
+func handleClient(client *Client) {
 	buf := make([]byte, 1024)
 
 	for {
@@ -108,6 +118,7 @@ func handleUser(client *Client) {
 		switch fields[0] {
 		case "create":
 			// create room
+
 		case "join":
 			// join room
 		case "nick":
