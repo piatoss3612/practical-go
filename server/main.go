@@ -81,6 +81,7 @@ func handleConnections(conns <-chan net.Conn) {
 					// quit chat server
 				case "help":
 					// show help
+					_, _ = user.Write([]byte(helpMessage))
 				default:
 					_, _ = user.Write([]byte("Unknown command\n"))
 				}
