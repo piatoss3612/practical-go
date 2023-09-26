@@ -40,52 +40,52 @@ func main() {
 	}
 }
 
-type User struct {
+type Client struct {
 	nickname string
 	net.Conn
 }
 
 func handleConnections(conns <-chan net.Conn) {
 	for conn := range conns {
-		user := User{nickname: "unknown", Conn: conn}
+		go handleUser(&Client{nickname: "unknown", Conn: conn})
+	}
+}
 
-		go func(user User) {
-			buf := make([]byte, 1024)
+func handleUser(client *Client) {
+	buf := make([]byte, 1024)
 
-			for {
-				_, err := user.Write([]byte("Enter command:"))
-				if err != nil {
-					slog.Error(err.Error())
-					return
-				}
+	for {
+		_, err := client.Write([]byte("Enter command:"))
+		if err != nil {
+			slog.Error(err.Error())
+			return
+		}
 
-				n, err := user.Read(buf)
-				if err != nil {
-					slog.Error(err.Error())
-					return
-				}
+		n, err := client.Read(buf)
+		if err != nil {
+			slog.Error(err.Error())
+			return
+		}
 
-				msg := string(buf[:n])
-				fields := strings.Fields(msg)
+		msg := string(buf[:n])
+		fields := strings.Fields(msg)
 
-				switch fields[0] {
-				case "create":
-					// create room
-				case "join":
-					// join room
-				case "nick":
-					// change nickname
-				case "list":
-					// list rooms
-				case "quit":
-					// quit chat server
-				case "help":
-					// show help
-					_, _ = user.Write([]byte(helpMessage))
-				default:
-					_, _ = user.Write([]byte("Unknown command\n"))
-				}
-			}
-		}(user)
+		switch fields[0] {
+		case "create":
+			// create room
+		case "join":
+			// join room
+		case "nick":
+			// change nickname
+		case "list":
+			// list rooms
+		case "quit":
+			// quit chat server
+		case "help":
+			// show help
+			_, _ = client.Write([]byte(helpMessage))
+		default:
+			_, _ = client.Write([]byte("Unknown command\n"))
+		}
 	}
 }
