@@ -2,12 +2,14 @@ package main
 
 import (
 	"errors"
+	"io"
 	"log/slog"
 	"net"
 	"os"
 	"os/signal"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -79,6 +81,7 @@ func run() <-chan bool {
 
 type Client struct {
 	nickname string
+	room     *Room
 	net.Conn
 }
 
@@ -96,6 +99,7 @@ func handleClient(client *Client) {
 	buf := make([]byte, 1024)
 
 	for {
+		time.Sleep(100 * time.Millisecond)
 		_, err := client.Write([]byte("Enter command:"))
 		if err != nil {
 			slog.Error(err.Error())
@@ -130,13 +134,17 @@ func handleClient(client *Client) {
 			joinRoom(fields[1], client)
 			return
 		case "nick":
-			// change nickname
+			if len(fields) < 2 {
+				_, _ = client.Write([]byte("Missing nickname"))
+				continue
+			}
+
+			changeNickname(client, fields[1])
 		case "list":
-			// list rooms
+			listRooms(client)
 		case "quit":
-			// quit chat server
+			return
 		case "help":
-			// show help
 			_, _ = client.Write([]byte(helpMessage))
 		default:
 			_, _ = client.Write([]byte("Unknown command"))
@@ -161,23 +169,63 @@ func joinRoom(name string, client *Client) {
 		return
 	}
 
-	room.Join(client)
+	client.room = room
+	if !room.Join(client) {
+		_, _ = client.Write([]byte("Room is full"))
+		return
+	}
 	room.Broadcast(client.nickname + " joined the room")
 
-	go chatInRoom(room, client)
+	go chatInRoom(client)
 }
 
-func chatInRoom(room *Room, client *Client) {
+func chatInRoom(client *Client) {
 	buf := make([]byte, 1024)
 
 	for {
 		n, err := client.Read(buf)
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				client.room.Leave(client)
+				client.room.Broadcast(client.nickname + " left the room...")
+				return
+			}
 			slog.Error(err.Error())
 			return
 		}
 
 		msg := string(buf[:n])
-		room.Broadcast(client.nickname + ": " + msg)
+
+		if msg == ":quit" {
+			client.room.Leave(client)
+			client.room.Broadcast(client.nickname + " left the room...")
+			handleClient(client)
+			return
+		}
+
+		client.room.Broadcast(client.nickname + ": " + msg)
 	}
+}
+
+func changeNickname(client *Client, nickname string) {
+	client.nickname = nickname
+	_, _ = client.Write([]byte("Nickname changed to " + client.nickname))
+}
+
+func listRooms(client *Client) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if len(rooms) == 0 {
+		_, _ = client.Write([]byte("No rooms"))
+		return
+	}
+
+	var names []string
+
+	for name := range rooms {
+		names = append(names, name)
+	}
+
+	_, _ = client.Write([]byte(strings.Join(names, "\n")))
 }
