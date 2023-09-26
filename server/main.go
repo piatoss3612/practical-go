@@ -1,8 +1,11 @@
 package main
 
 import (
+	"errors"
 	"log/slog"
 	"net"
+	"os"
+	"os/signal"
 	"strings"
 )
 
@@ -17,6 +20,10 @@ Commands:
 `
 
 func main() {
+	<-run()
+}
+
+func run() <-chan bool {
 	listener, err := net.Listen("tcp", "127.0.0.1:8080")
 	if err != nil {
 		panic(err)
@@ -24,20 +31,44 @@ func main() {
 
 	slog.Info("Chat server started on port 8080")
 
-	newConnections := make(chan net.Conn)
-	defer close(newConnections)
+	conns := make(chan net.Conn)
 
-	go handleConnections(newConnections)
+	go handleConnections(conns)
 
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			slog.Error(err.Error())
-			continue
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				if errors.Is(err, net.ErrClosed) {
+					return
+				}
+				slog.Error(err.Error())
+				continue
+			}
+
+			conns <- conn
 		}
+	}()
 
-		newConnections <- conn
-	}
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt)
+
+	quit := make(chan bool)
+
+	go func() {
+		defer func() {
+			_ = listener.Close()
+			slog.Info("Chat server stopped")
+
+			close(quit)
+			close(sig)
+			close(conns)
+		}()
+		<-sig
+		quit <- true
+	}()
+
+	return quit
 }
 
 type Client struct {
@@ -47,6 +78,10 @@ type Client struct {
 
 func handleConnections(conns <-chan net.Conn) {
 	for conn := range conns {
+		if conn == nil {
+			continue
+		}
+
 		go handleUser(&Client{nickname: "unknown", Conn: conn})
 	}
 }
