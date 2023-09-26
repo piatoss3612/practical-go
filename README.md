@@ -1,5 +1,10 @@
 # 01 tcp
 
+## 0. Environment
+
+- Go 1.21.0
+- Make 4.3
+
 ## 1. Run the server
 
 ```bash
