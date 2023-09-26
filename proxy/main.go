@@ -28,6 +28,8 @@ func main() {
 			return
 		}
 
+		slog.Info("Accepted connection", slog.Any("remote_addr", conn.RemoteAddr()))
+
 		go func(from net.Conn) {
 			to, err := net.Dial("tcp", ListenerAddr)
 			if err != nil {

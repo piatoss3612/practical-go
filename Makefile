@@ -1,3 +1,4 @@
+cmd = "ping"
 c = 10
 m = "Hello World!"
 
@@ -16,3 +17,7 @@ ping:
 echo:
 	@echo "Sending echo request to TCP server..."
 	go run ./client echo -c $(c) -m $(m)
+
+proxy-client:
+	@echo "Sending echo request to TCP proxy server..."
+	go run ./client proxy -cmd $(cmd) -c $(c) -m $(m)

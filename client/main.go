@@ -20,6 +20,7 @@ func main() {
 
 	pingCmd := newPingCmd()
 	echoCmd := newEchoCmd()
+	proxyCmd := newProxyCmd()
 
 	if len(args) < 2 {
 		printUsage(pingCmd, echoCmd)
@@ -28,22 +29,54 @@ func main() {
 
 	switch args[1] {
 	case "ping":
-		ping(pingCmd)
+		runPing(pingCmd)
 	case "echo":
-		echo(echoCmd)
+		runEcho(echoCmd)
+	case "proxy":
+		runProxy(proxyCmd)
 	default:
 		printUsage(pingCmd, echoCmd)
 	}
 }
 
-func ping(flags *flag.FlagSet) {
+func runPing(flags *flag.FlagSet) {
 	cnt := flags.Int("c", 1, "Number of pings")
 	flags.Parse(os.Args[2:])
 
-	client := newClient()
+	ping("127.0.0.1:8080", *cnt)
+}
+
+func runEcho(flags *flag.FlagSet) {
+	cnt := flags.Int("c", 1, "Number of echoes")
+	msg := flags.String("m", "echo", "Message to echo")
+	flags.Parse(os.Args[2:])
+
+	echo("127.0.0.1:8080", *msg, *cnt)
+}
+
+func runProxy(flags *flag.FlagSet) {
+	cmd := flags.String("cmd", "", "Command to execute")
+	cnt := flags.Int("c", 1, "Number of echoes")
+	msg := flags.String("m", "echo", "Message to echo")
+	flags.Parse(os.Args[2:])
+
+	addr := "127.0.0.1:7070"
+
+	switch *cmd {
+	case "ping":
+		ping(addr, *cnt)
+	case "echo":
+		echo(addr, *msg, *cnt)
+	default:
+		printUsage(flags)
+	}
+}
+
+func ping(addr string, cnt int) {
+	client := newClient(addr)
 	defer client.Close()
 
-	for i := 0; i < *cnt; i++ {
+	for i := 0; i < cnt; i++ {
 		_, err := client.Write([]byte("ping"))
 		if err != nil {
 			panic(err)
@@ -64,22 +97,18 @@ func ping(flags *flag.FlagSet) {
 	slog.Info("Ping finished")
 }
 
-func echo(flags *flag.FlagSet) {
-	cnt := flags.Int("c", 1, "Number of echoes")
-	msg := flags.String("m", "echo", "Message to echo")
-	flags.Parse(os.Args[2:])
-
-	client := newClient()
+func echo(addr, msg string, cnt int) {
+	client := newClient(addr)
 	defer client.Close()
 
-	for i := 0; i < *cnt; i++ {
-		_, err := client.Write([]byte(*msg))
+	for i := 0; i < cnt; i++ {
+		_, err := client.Write([]byte(msg))
 		if err != nil {
 			panic(err)
 		}
 		slog.Info("Echo sent", slog.Int("count", i+1))
 
-		buf := make([]byte, len(*msg))
+		buf := make([]byte, len(msg))
 		_, err = client.Read(buf)
 		if err != nil {
 			panic(err)
@@ -93,8 +122,8 @@ func echo(flags *flag.FlagSet) {
 	slog.Info("Echo finished")
 }
 
-func newClient() net.Conn {
-	client, err := net.Dial("tcp", "127.0.0.1:8080")
+func newClient(addr string) net.Conn {
+	client, err := net.Dial("tcp", addr)
 	if err != nil {
 		panic(err)
 	}
@@ -123,6 +152,18 @@ func newEchoCmd() *flag.FlagSet {
 		fmt.Println("  -m <message>  Message to echo")
 	}
 	return echoCmd
+}
+
+func newProxyCmd() *flag.FlagSet {
+	proxyCmd := flag.NewFlagSet("proxy", flag.ExitOnError)
+	proxyCmd.Usage = func() {
+		fmt.Println("Usage: client proxy [options]")
+		fmt.Println("Options:")
+		fmt.Println("  -cmd <command>  Command to execute")
+		fmt.Println("  -c <count>  Number of echoes")
+		fmt.Println("  -m <message>  Message to echo")
+	}
+	return proxyCmd
 }
 
 func printUsage(flagSets ...*flag.FlagSet) {
