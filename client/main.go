@@ -24,12 +24,14 @@ func main() {
 	buf := make([]byte, 1024)
 
 	for i := 0; i < 10; i++ {
-		_, err := client.Write([]byte("Hello, world!"))
+		msg := "hello world"
+
+		_, err := client.Write([]byte(msg))
 		if err != nil {
 			slog.Error(err.Error())
 			return
 		}
-		slog.Info("Sent message", slog.String("message", "Hello, world!"))
+		slog.Info("Sent message", slog.String("message", msg))
 
 		n, err := client.Read(buf)
 		if err != nil {

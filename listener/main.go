@@ -26,6 +26,12 @@ func main() {
 	go func() {
 		defer func() { close(done) }()
 
+		pingChan := make(chan net.Conn)
+		echoChan := make(chan echoConn)
+
+		go pingHandler(pingChan)
+		go echoHandler(echoChan)
+
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
@@ -53,17 +59,41 @@ func main() {
 
 					slog.Info("Received message", slog.String("message", string(buf[:n])))
 
-					_, err = c.Write(buf[:n])
-					if err != nil {
-						slog.Error(err.Error())
-						return
+					switch string(buf[:n]) {
+					case "ping":
+						pingChan <- c
+					default:
+						echoChan <- echoConn{c, buf[:n]}
 					}
-
-					slog.Info("Echoed message", slog.String("message", string(buf[:n])))
 				}
 			}(conn)
 		}
 	}()
 
 	<-done
+}
+
+func pingHandler(conns <-chan net.Conn) {
+	for conn := range conns {
+		_, err := conn.Write([]byte("pong"))
+		if err != nil {
+			slog.Error(err.Error())
+			return
+		}
+	}
+}
+
+type echoConn struct {
+	net.Conn
+	msg []byte
+}
+
+func echoHandler(conns <-chan echoConn) {
+	for conn := range conns {
+		_, err := conn.Write(conn.msg)
+		if err != nil {
+			slog.Error(err.Error())
+			return
+		}
+	}
 }
