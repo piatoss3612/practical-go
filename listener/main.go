@@ -1,9 +1,13 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"log/slog"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -17,25 +21,35 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer listener.Close()
 
 	slog.Info("TCP server started", slog.String("address", listener.Addr().String()))
+	defer func() {
+		slog.Info("TCP server stopped", slog.String("address", listener.Addr().String()))
+	}()
 
-	done := make(chan struct{})
+	<-run(listener)
+}
+
+func run(listener net.Listener) <-chan struct{} {
+	pingChan := make(chan net.Conn)
+	echoChan := make(chan echoConn)
+
+	close := func() {
+		close(pingChan)
+		close(echoChan)
+		_ = listener.Close()
+	}
+
+	go pingHandler(pingChan)
+	go echoHandler(echoChan)
 
 	go func() {
-		defer func() { close(done) }()
-
-		pingChan := make(chan net.Conn)
-		echoChan := make(chan echoConn)
-
-		go pingHandler(pingChan)
-		go echoHandler(echoChan)
-
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
-				slog.Error(err.Error())
+				if !errors.Is(err, net.ErrClosed) {
+					slog.Error(err.Error())
+				}
 				return
 			}
 
@@ -70,7 +84,22 @@ func main() {
 		}
 	}()
 
-	<-done
+	return gracefulShutdown(close)
+}
+
+func gracefulShutdown(fn func()) <-chan struct{} {
+	done := make(chan struct{})
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+
+	defer func() {
+		<-sig
+		fn()
+		close(sig)
+		close(done)
+	}()
+
+	return done
 }
 
 func pingHandler(conns <-chan net.Conn) {
