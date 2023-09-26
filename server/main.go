@@ -10,10 +10,6 @@ import (
 	"sync"
 )
 
-const (
-	MAX_ROOM_SIZE = 10
-)
-
 var (
 	rooms = make(map[string]*Room)
 	mu    = sync.Mutex{}
@@ -117,10 +113,22 @@ func handleClient(client *Client) {
 
 		switch fields[0] {
 		case "create":
-			// create room
+			if len(fields) < 2 {
+				_, _ = client.Write([]byte("Missing room name"))
+				continue
+			}
 
+			addRoom(fields[1], client)
+			joinRoom(fields[1], client)
+			return
 		case "join":
-			// join room
+			if len(fields) < 2 {
+				_, _ = client.Write([]byte("Missing room name"))
+				continue
+			}
+
+			joinRoom(fields[1], client)
+			return
 		case "nick":
 			// change nickname
 		case "list":
@@ -131,7 +139,45 @@ func handleClient(client *Client) {
 			// show help
 			_, _ = client.Write([]byte(helpMessage))
 		default:
-			_, _ = client.Write([]byte("Unknown command\n"))
+			_, _ = client.Write([]byte("Unknown command"))
 		}
+	}
+}
+
+func addRoom(name string, client *Client) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	rooms[name] = NewRoom(name)
+}
+
+func joinRoom(name string, client *Client) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	room, ok := rooms[name]
+	if !ok {
+		_, _ = client.Write([]byte("Room not found"))
+		return
+	}
+
+	room.Join(client)
+	room.Broadcast(client.nickname + " joined the room")
+
+	go chatInRoom(room, client)
+}
+
+func chatInRoom(room *Room, client *Client) {
+	buf := make([]byte, 1024)
+
+	for {
+		n, err := client.Read(buf)
+		if err != nil {
+			slog.Error(err.Error())
+			return
+		}
+
+		msg := string(buf[:n])
+		room.Broadcast(client.nickname + ": " + msg)
 	}
 }

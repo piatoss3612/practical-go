@@ -2,6 +2,8 @@ package main
 
 import "sync"
 
+const MAX_ROOM_SIZE = 10
+
 type Room struct {
 	name    string
 	clients []*Client
@@ -32,7 +34,7 @@ func (r *Room) Join(client *Client) bool {
 	return true
 }
 
-func (r *Room) Leave(client *Client) {
+func (r *Room) Leave(client *Client) bool {
 	r.m.Lock()
 	defer r.m.Unlock()
 
@@ -40,9 +42,11 @@ func (r *Room) Leave(client *Client) {
 		if c == client {
 			r.clients = append(r.clients[:i], r.clients[i+1:]...)
 			r.size--
-			return
+			return true
 		}
 	}
+
+	return false
 }
 
 func (r *Room) Broadcast(msg string) {
