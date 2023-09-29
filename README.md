@@ -1,12 +1,18 @@
 # 식사하는 철학자들 문제
 
-## 실행
+## 0. 환경
+
+- go 1.21.0
+- Make 4.3
+- docker 24.0.2
+
+## 1. 실행
 
 ```bash
 $ go run main.go
 ```
 
-## 테스트
+## 2. 테스트
 
 ```bash
 $ go test -v -race .
@@ -19,7 +25,7 @@ $ make build
 $ make test
 ```
 
-## 테스트 결과
+## 3. 테스트 결과
 
 ```bash
 $ go test -v -race -cover .
