@@ -1,16 +1,10 @@
 package main
 
 import (
-	"errors"
 	"sync"
 	"time"
 
 	"github.com/fatih/color"
-)
-
-var (
-	ErrBarberShopClosed = errors.New("바버샵이 문을 닫았습니다")
-	ErrorCustomerFull   = errors.New("바버샵이 꽉 찼습니다")
 )
 
 type BarberShop struct {
@@ -21,7 +15,7 @@ type BarberShop struct {
 	Open         bool           // 바버샵이 영업 중인지 여부
 
 	wg sync.WaitGroup // 바버샵의 모든 이발사들이 퇴근할 때까지 기다리기 위한 WaitGroup
-	mu sync.Mutex     // 바버샵의 상태를 변경할 때 사용하는 뮤텍스
+	mu sync.RWMutex   // 바버샵의 상태를 변경할 때 사용하는 뮤텍스
 }
 
 func NewBarberShop(capacity int, openDuration time.Duration) *BarberShop {
@@ -32,7 +26,7 @@ func NewBarberShop(capacity int, openDuration time.Duration) *BarberShop {
 		customerChan: make(chan *Customer, capacity),
 		Open:         false,
 		wg:           sync.WaitGroup{},
-		mu:           sync.Mutex{},
+		mu:           sync.RWMutex{},
 	}
 }
 
@@ -80,13 +74,19 @@ func (b *BarberShop) CloseShop() {
 	}
 }
 
-func (b *BarberShop) AddBarber(barber *Barber) (<-chan *Customer, error) {
+func (b *BarberShop) IsOpen() bool {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	return b.Open
+}
+
+func (b *BarberShop) AddBarber(barber *Barber) <-chan *Customer {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	// 바버샵이 닫혀있으면 이발사를 추가할 수 없습니다.
 	if !b.Open {
-		return nil, ErrBarberShopClosed
+		return nil
 	}
 
 	// 이발사를 추가하고 고객들을 받아들일 채널을 반환합니다.
@@ -94,27 +94,23 @@ func (b *BarberShop) AddBarber(barber *Barber) (<-chan *Customer, error) {
 
 	b.wg.Add(1)
 
-	return b.customerChan, nil
+	return b.customerChan
 }
 
-func (b *BarberShop) AddCustomer(customer *Customer) error {
+func (b *BarberShop) ServeCustomer(customer *Customer) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	// 바버샵이 닫혀있으면 고객을 추가할 수 없습니다.
 	if !b.Open {
-		return ErrBarberShopClosed
+		customer.LeaveBarberShop(false, "바버샵이 문을 닫았습니다.")
+		return
 	}
 
 	select {
 	case b.customerChan <- customer: // 바버샵에 고객을 추가합니다.
-		go func(c *Customer) {
-			<-c.Done()
-			color.Green("%s(이)가 머리를 자르고 집으로 돌아갑니다.\n", c)
-		}(customer)
-		return nil
 	default: // 바버샵이 꽉 찼으면 고객을 추가할 수 없습니다.
-		return ErrorCustomerFull
+		customer.LeaveBarberShop(false, "바버샵이 꽉 찼습니다.")
 	}
 }
 

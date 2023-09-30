@@ -1,14 +1,13 @@
 package main
 
 import (
-	"errors"
 	"sync"
 	"time"
 
 	"github.com/fatih/color"
 )
 
-type BarberState int8
+type BarberState uint8
 
 const (
 	Checking BarberState = iota
@@ -43,11 +42,9 @@ func (b *Barber) GoToWork(shop *BarberShop) {
 
 	color.Magenta("%s(은)는 출근합니다.\n", b.Name)
 
-	customers, err := shop.AddBarber(b) // 바버샵에 이발사를 추가합니다.
-	if err != nil {
-		if errors.Is(err, ErrBarberShopClosed) {
-			color.Red("%s(은)는 출근하지 못했습니다. 바버샵이 문을 닫았습니다.\n", b.Name)
-		}
+	customers := shop.AddBarber(b) // 바버샵에 이발사를 추가합니다.
+	if customers == nil {
+		color.Red("%s(은)는 출근하지 못했습니다. 바버샵이 문을 닫았습니다.\n", b.Name)
 		return
 	}
 
@@ -107,7 +104,7 @@ func (b *Barber) cutHair(customer *Customer) {
 
 	color.Magenta("%s(은)는 %s의 머리를 다 깍았습니다.\n", b.Name, customer)
 
-	go customer.LeaveBarberShop() // 고객이 머리를 다 깍았으니 집으로 돌아갑니다.
+	customer.LeaveBarberShop(true) // 고객이 이발을 받고 바버샵을 나갑니다.
 
 	// 머리를 다 깍았으면 다음 고객을 받습니다.
 	b.mu.Lock()

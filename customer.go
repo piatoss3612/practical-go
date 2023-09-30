@@ -1,27 +1,33 @@
 package main
 
-type Customer struct {
-	Name string    // 고객의 이름
-	done chan bool // 고객이 머리를 자르고 집으로 돌아갈 때까지 기다리는 채널
-}
+import "github.com/fatih/color"
+
+type Customer string
 
 func NewCustomer(name string) *Customer {
-	customer := Customer{Name: name, done: make(chan bool)}
+	customer := Customer(name)
 	return &customer
 }
 
-func (c *Customer) String() string {
-	return c.Name
+func (c Customer) String() string {
+	return string(c)
 }
 
-func (c *Customer) EnterBarberShop(shop *BarberShop) error {
-	return shop.AddCustomer(c) // 바버샵에 고객을 추가합니다.
+func (c *Customer) EnterBarberShop(shop *BarberShop) {
+	color.Green("%s(이)가 바버샵에 도착했습니다.\n", c)
+	shop.ServeCustomer(c) // 바버샵에 고객을 추가합니다.
 }
 
-func (c *Customer) LeaveBarberShop() {
-	close(c.done) // 고객이 머리를 자르고 집으로 돌아갑니다.
-}
+func (c *Customer) LeaveBarberShop(haircut bool, reasons ...string) {
+	if !haircut {
+		reason := "%s(이)가 집에 돌아갑니다."
+		if len(reasons) > 0 {
+			reason += " 사유: %s"
+		}
 
-func (c *Customer) Done() <-chan bool {
-	return c.done // 고객이 머리를 자르고 집으로 돌아갈 때까지 기다립니다.
+		color.Red(reason, c, reasons)
+		return
+	}
+
+	color.Green("%s(이)가 이발을 받고 바버샵을 나갑니다.\n", c)
 }
