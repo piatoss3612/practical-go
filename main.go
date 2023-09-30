@@ -21,15 +21,15 @@ func main() {
 		{"국봉", 1000 * time.Millisecond},
 	}
 
-	SleepingBarber(barbers, 400) // 잠자는 이발사 문제를 해결합니다.
+	SleepingBarber(barbers, 10, 400) // 잠자는 이발사 문제를 해결합니다.
 	fmt.Println("==================================================")
 }
 
 func SleepingBarber(barbers []struct {
 	name            string
 	cuttingDuration time.Duration
-}, arrivalRate int) {
-	shop := NewBarberShop(10, time.Duration(time.Second)*10) // 10명의 고객을 수용할 수 있고 10초 동안 영업하는 바버샵을 만듭니다.
+}, capacity, arrivalRate int) {
+	shop := NewBarberShop(capacity, time.Duration(time.Second)*10) // 10명의 고객을 수용할 수 있고 10초 동안 영업하는 바버샵을 만듭니다.
 
 	shop.OpenShop() // 바버샵을 오픈합니다.
 

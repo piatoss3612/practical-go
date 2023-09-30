@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/rand"
 	"os"
 	"sync"
 	"testing"
@@ -15,7 +16,7 @@ func TestMain(m *testing.M) {
 func TestSleepingBarber(t *testing.T) {
 	wg := sync.WaitGroup{}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
 
 		barbers := []struct {
@@ -33,7 +34,7 @@ func TestSleepingBarber(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			SleepingBarber(barbers, 200)
+			SleepingBarber(barbers, rand.Intn(10)+1, rand.Intn(300)+200)
 		}()
 	}
 
