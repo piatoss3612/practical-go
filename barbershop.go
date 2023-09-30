@@ -56,7 +56,8 @@ func (b *BarberShop) CloseShop() {
 
 	// 바버샵에 있는 모든 고객들을 돌려보냅니다.
 	for len(b.customerChan) > 0 {
-		<-b.customerChan
+		customer := <-b.customerChan
+		customer.LeaveBarberShop(false, "바버샵의 영업 시간이 종료되었습니다.")
 	}
 
 	close(b.customerChan)
