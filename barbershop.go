@@ -8,10 +8,10 @@ import (
 )
 
 type BarberShop struct {
-	Capacity     int            // 바버샵의 최대 수용 인원
+	Capacity     int            // 바버샵의 대기석 수용 인원
 	OpenDuration time.Duration  // 바버샵의 영업 시간
 	barbers      []*Barber      // 바버샵에 있는 이발사들
-	customerChan chan *Customer // 바버샵에 있는 고객들의 채널
+	customerChan chan *Customer // 바버샵에 있는 손님들의 채널
 	Open         bool           // 바버샵이 영업 중인지 여부
 
 	wg sync.WaitGroup // 바버샵의 모든 이발사들이 퇴근할 때까지 기다리기 위한 WaitGroup
@@ -52,9 +52,9 @@ func (b *BarberShop) CloseShop() {
 	defer b.mu.Unlock()
 	b.Open = false // 바버샵을 닫습니다.
 
-	color.Blue("공지: 영업 시간이 종료되었습니다. 대기 중인 고객들을 모두 돌려보냅니다.\n")
+	color.Blue("공지: 영업 시간이 종료되었습니다. 대기 중인 손님들을 모두 돌려보냅니다.\n")
 
-	// 바버샵에 있는 모든 고객들을 돌려보냅니다.
+	// 바버샵에 있는 모든 손님들을 돌려보냅니다.
 	for len(b.customerChan) > 0 {
 		customer := <-b.customerChan
 		customer.LeaveBarberShop(false, "바버샵의 영업 시간이 종료되었습니다.")
@@ -62,7 +62,7 @@ func (b *BarberShop) CloseShop() {
 
 	close(b.customerChan)
 
-	color.Blue("공지: 모든 고객들을 돌려보냈습니다. 이발사들을 퇴근시킵니다.\n")
+	color.Blue("공지: 모든 손님들을 돌려보냈습니다. 이발사들을 퇴근시킵니다.\n")
 
 	// 바버샵에 있는 모든 이발사들을 퇴근시킵니다.
 	for _, barber := range b.barbers {
@@ -90,7 +90,7 @@ func (b *BarberShop) AddBarber(barber *Barber) <-chan *Customer {
 		return nil
 	}
 
-	// 이발사를 추가하고 고객들을 받아들일 채널을 반환합니다.
+	// 이발사를 추가하고 손님들을 받아들일 채널을 반환합니다.
 	b.barbers = append(b.barbers, barber)
 
 	b.wg.Add(1)
@@ -102,15 +102,15 @@ func (b *BarberShop) ServeCustomer(customer *Customer) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// 바버샵이 닫혀있으면 고객을 추가할 수 없습니다.
+	// 바버샵이 닫혀있으면 손님을 추가할 수 없습니다.
 	if !b.Open {
 		customer.LeaveBarberShop(false, "바버샵이 문을 닫았습니다.")
 		return
 	}
 
 	select {
-	case b.customerChan <- customer: // 바버샵에 고객을 추가합니다.
-	default: // 바버샵이 꽉 찼으면 고객을 추가할 수 없습니다.
+	case b.customerChan <- customer: // 바버샵에 손님을 추가합니다.
+	default: // 바버샵이 꽉 찼으면 손님을 추가할 수 없습니다.
 		customer.LeaveBarberShop(false, "바버샵이 꽉 찼습니다.")
 	}
 }

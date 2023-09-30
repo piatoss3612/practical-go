@@ -53,36 +53,31 @@ func (b *Barber) GoToWork(shop *BarberShop) {
 
 	color.Magenta("%s(은)는 바버샵에서 일을 시작합니다.\n", b.Name)
 
-	go b.acceptCustomers(customers) // 바버샵에 있는 고객들을 받아서 일을 합니다.
+	go b.acceptCustomers(customers) // 바버샵에 있는 손님들을 받아서 일을 합니다.
 }
 
-// 바버샵에 있는 고객들을 받아서 일을 합니다.
+// 바버샵에 있는 손님들을 받아서 일을 합니다.
 func (b *Barber) acceptCustomers(customers <-chan *Customer) {
 	for {
 		select {
 		case <-b.readyToGoHomeChan: // 퇴근을 준비합니다.
 			b.GoHome()
 			return
-		case customer, ok := <-customers: // 바버샵에 있는 고객들을 받습니다.
-			// 바버샵에 있는 고객들을 받았는데, 바버샵이 문을 닫았거나 고객이 없으면 다음 고객을 받습니다.
+		case customer, ok := <-customers: // 바버샵에 있는 손님들을 받습니다.
+			// 바버샵에 있는 손님들을 받았는데, 바버샵이 문을 닫았거나 손님이 없으면 다음 손님을 받습니다.
 			if !ok || customer == nil {
 				continue
 			}
 
-			// 고객을 받았는데, 이발사가 자고 있으면 고객이 이발사를 깨우고, 이발사의 상태를 체크 중으로 변경합니다.
+			// 손님을 받았는데, 이발사가 자고 있으면 손님이 이발사를 깨우고, 이발사의 상태를 체크 중으로 변경합니다.
 			if b.IsSleeping() {
 				customer.WakeBarberUp(b)
 			}
 
-			if b.State == Sleeping {
-				color.Green("%s(은)는 %s(을)를 깨웁니다.\n", customer, b.Name)
-				b.State = Checking
-			}
-
-			b.CutHair(customer) // 이발사가 고객의 머리를 깍습니다.
+			b.CutHair(customer) // 이발사가 손님의 머리를 깍습니다.
 		default:
 			b.mu.Lock()
-			// 대기 중인 고객이 없으면 이발사가 잠을 잡니다.
+			// 대기 중인 손님이 없으면 이발사가 잠을 잡니다.
 			if b.State == Checking {
 				color.Magenta("%s(은)는 할 일이 없어 잠을 잡니다.\n", b.Name)
 				b.State = Sleeping
@@ -92,7 +87,7 @@ func (b *Barber) acceptCustomers(customers <-chan *Customer) {
 	}
 }
 
-// 이발사가 고객의 머리를 깍습니다.
+// 이발사가 손님의 머리를 깍습니다.
 func (b *Barber) CutHair(customer *Customer) {
 	// 머리를 깍습니다.
 	b.mu.Lock()
@@ -105,9 +100,9 @@ func (b *Barber) CutHair(customer *Customer) {
 
 	color.Magenta("%s(은)는 %s의 머리를 다 깍았습니다.\n", b.Name, customer)
 
-	customer.LeaveBarberShop(true) // 고객이 이발을 받고 바버샵을 나갑니다.
+	customer.LeaveBarberShop(true) // 손님이 이발을 받고 바버샵을 나갑니다.
 
-	// 머리를 다 깍았으면 다음 고객을 받습니다.
+	// 머리를 다 깍았으면 다음 손님을 받습니다.
 	b.mu.Lock()
 	b.State = Checking
 	b.mu.Unlock()
