@@ -33,7 +33,7 @@ func TestSleepingBarber(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			SleepingBarber(barbers)
+			SleepingBarber(barbers, 200)
 		}()
 	}
 
