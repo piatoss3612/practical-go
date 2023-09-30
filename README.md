@@ -21,8 +21,8 @@ $ go test -v -race -cover .
 ```bash
 === RUN   TestSleepingBarber
 ...
---- PASS: TestSleepingBarber (47.27s)
+--- PASS: TestSleepingBarber (44.51s)
 PASS
-coverage: 100.0% of statements
-ok      sleeping-barber 64.165s coverage: 100.0% of statements
+coverage: 98.4% of statements
+ok      sleeping-barber 61.099s coverage: 98.4% of statements
 ```

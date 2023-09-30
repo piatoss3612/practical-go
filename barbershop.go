@@ -66,7 +66,7 @@ func (b *BarberShop) CloseShop() {
 
 	// 바버샵에 있는 모든 이발사들을 퇴근시킵니다.
 	for _, barber := range b.barbers {
-		barber.GetReadyToGoHome() // 이발사들이 퇴근할 준비를 합니다.
+		barber.GoodToGoHome() // 이발사들이 퇴근할 준비를 합니다.
 
 		go func(barber *Barber) {
 			<-barber.Done() // 이발사들이 퇴근할 때까지 기다립니다.
