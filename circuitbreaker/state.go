@@ -20,3 +20,7 @@ func (s State) String() string {
 		return "unknown"
 	}
 }
+
+func (s State) Valid() bool {
+	return s == StateClosed || s == StateOpen || s == StateHalfOpen
+}
