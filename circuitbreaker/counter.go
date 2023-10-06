@@ -1,7 +1,7 @@
 package circuitbreaker
 
 type Counter struct {
-	TotalRequests        uint64
+	TotalRequests        uint32
 	TotalSuccesses       uint32
 	TotalFailures        uint32
 	ConsecutiveSuccesses uint32
