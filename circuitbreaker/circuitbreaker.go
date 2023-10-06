@@ -20,3 +20,19 @@ type CircuitBreaker struct {
 	counter Counter
 	mu      sync.RWMutex
 }
+
+func New(opts ...Option) *CircuitBreaker {
+	cb := &CircuitBreaker{
+		state:   StateClosed,
+		counter: Counter{},
+		mu:      sync.RWMutex{},
+	}
+
+	WithDefaultOptions()(cb)
+
+	for _, opt := range opts {
+		opt(cb)
+	}
+
+	return cb
+}
