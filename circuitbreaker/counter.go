@@ -1,7 +1,6 @@
 package circuitbreaker
 
 type Counter struct {
-	TotalRequests        uint32
 	TotalSuccesses       uint32
 	TotalFailures        uint32
 	ConsecutiveSuccesses uint32
@@ -9,23 +8,28 @@ type Counter struct {
 }
 
 func (c *Counter) onSuccess() {
-	c.TotalRequests++
 	c.TotalSuccesses++
 	c.ConsecutiveSuccesses++
 	c.ConsecutiveFailures = 0
 }
 
 func (c *Counter) onFailure() {
-	c.TotalRequests++
 	c.TotalFailures++
 	c.ConsecutiveFailures++
 	c.ConsecutiveSuccesses = 0
 }
 
 func (c *Counter) reset() {
-	c.TotalRequests = 0
+	c.resetSuccesses()
+	c.resetFailures()
+}
+
+func (c *Counter) resetSuccesses() {
 	c.TotalSuccesses = 0
-	c.TotalFailures = 0
 	c.ConsecutiveSuccesses = 0
+}
+
+func (c *Counter) resetFailures() {
+	c.TotalFailures = 0
 	c.ConsecutiveFailures = 0
 }

@@ -53,7 +53,6 @@ func (s *proxyServer) handler() http.Handler {
 
 func main() {
 	cb := circuitbreaker.New(
-		circuitbreaker.WithClearInterval(5*time.Second),
 		circuitbreaker.WithOpenTimeout(5*time.Second),
 		circuitbreaker.WithStateChangeHook(
 			func(from, to circuitbreaker.State) {

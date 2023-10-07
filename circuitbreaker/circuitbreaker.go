@@ -3,7 +3,6 @@ package circuitbreaker
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"sync"
 	"time"
 )
@@ -19,7 +18,6 @@ type StateChangeHook func(from, to State)
 
 type CircuitBreaker struct {
 	halfOpenMaxSuccesses uint32          // max successes in half-open state
-	clearInterval        time.Duration   // counter clear interval in closed state
 	openTimeout          time.Duration   // timeout in open state
 	trip                 TripFunc        // trip function to determine if the circuit should be tripped
 	onStateChange        StateChangeHook // hook to be called when the state changes
@@ -41,8 +39,6 @@ func New(opts ...Option) *CircuitBreaker {
 	for _, opt := range opts {
 		opt(cb)
 	}
-
-	go cb.resetCounterInterval()
 
 	return cb
 }
@@ -97,28 +93,8 @@ func (cb *CircuitBreaker) success() {
 		cb.counter.onSuccess()
 		if cb.counter.TotalSuccesses >= cb.halfOpenMaxSuccesses {
 			_ = cb.setState(StateClosed)
-			go cb.resetCounterInterval()
+			cb.counter.resetFailures()
 		}
-	}
-}
-
-func (cb *CircuitBreaker) resetCounterInterval() {
-	ticker := time.NewTicker(cb.clearInterval)
-
-	for range ticker.C {
-		cb.mu.RLock()
-		if cb.state != StateClosed {
-			cb.mu.RUnlock()
-			ticker.Stop()
-			return
-		}
-		cb.mu.RUnlock()
-
-		cb.mu.Lock()
-		cb.reset()
-		cb.mu.Unlock()
-
-		slog.Info("Successfully reset circuit breaker counter")
 	}
 }
 
@@ -143,18 +119,15 @@ func (cb *CircuitBreaker) checkOpenTimeout() {
 	<-time.NewTimer(cb.openTimeout).C
 
 	cb.mu.Lock()
-	_ = cb.setState(StateHalfOpen)
-	cb.mu.Unlock()
+	defer cb.mu.Unlock()
+
+	cb.setState(StateHalfOpen)
+	cb.counter.resetSuccesses()
 }
 
 func (cb *CircuitBreaker) Reset() {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-
-	cb.reset()
-}
-
-func (cb *CircuitBreaker) reset() {
 	cb.counter.reset()
 	_ = cb.setState(StateClosed)
 }
