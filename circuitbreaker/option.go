@@ -11,32 +11,37 @@ var (
 	DefaultOnStateChange = func(from, to State) {}
 )
 
-type Option func(c *CircuitBreaker)
+type Option func(c *CircuitBreaker) // CircuitBreaker의 옵션을 설정하는 함수의 타입
 
+// halfOpenMaxSuccesses를 설정하는 옵션 함수
 func WithHalfOpenMaxSuccesses(n uint32) Option {
 	return func(c *CircuitBreaker) {
 		c.halfOpenMaxSuccesses = n
 	}
 }
 
+// openTimeout을 설정하는 옵션 함수
 func WithOpenTimeout(d time.Duration) Option {
 	return func(c *CircuitBreaker) {
 		c.openTimeout = d
 	}
 }
 
+// trip을 설정하는 옵션 함수
 func WithTripFunc(f TripFunc) Option {
 	return func(c *CircuitBreaker) {
 		c.trip = f
 	}
 }
 
+// onStateChange를 설정하는 옵션 함수
 func WithStateChangeHook(f StateChangeHook) Option {
 	return func(c *CircuitBreaker) {
 		c.onStateChange = f
 	}
 }
 
+// 기본 옵션을 설정하는 옵션 함수
 func WithDefaultOptions() Option {
 	return func(c *CircuitBreaker) {
 		c.halfOpenMaxSuccesses = DefaultHalfOpenMaxSuccesses
