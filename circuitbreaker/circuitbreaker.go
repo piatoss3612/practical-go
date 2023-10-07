@@ -3,6 +3,7 @@ package circuitbreaker
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -19,6 +20,7 @@ type StateChangeHook func(from, to State) // 서킷 브레이커의 상태가 �
 // 서킷 브레이커 구조체
 type CircuitBreaker struct {
 	halfOpenMaxSuccesses uint32          // half open 상태에서 closed 상태로 전환되기 위한 최소 성공 횟수
+	clearInterval        time.Duration   // 서킷 브레이커의 counter를 초기화하는 주기
 	openTimeout          time.Duration   // open 상태에서 half open 상태로 전환되기 위한 시간
 	trip                 TripFunc        // 서킷 브레이커가 open 상태로 전환되기 위한 조건을 판단하는 함수
 	onStateChange        StateChangeHook // 서킷 브레이커의 상태가 변경될 때 호출되는 함수
@@ -43,6 +45,8 @@ func New(opts ...Option) *CircuitBreaker {
 	for _, opt := range opts {
 		opt(cb)
 	}
+
+	go cb.resetCounterInterval() // 서킷 브레이커의 counter를 초기화하는 goroutine을 실행한다.
 
 	return cb
 }
@@ -107,6 +111,7 @@ func (cb *CircuitBreaker) success() {
 		if cb.counter.TotalSuccesses >= cb.halfOpenMaxSuccesses {
 			_ = cb.setState(StateClosed) // closed 상태로 전환한다.
 			cb.counter.resetFailures()   // 실패 횟수를 초기화한다.
+			go cb.resetCounterInterval() // 서킷 브레이커의 counter를 초기화하는 goroutine을 실행한다.
 		}
 	}
 }
@@ -128,6 +133,27 @@ func (cb *CircuitBreaker) fail() {
 	case StateHalfOpen: // 서킷 브레이커가 half open 상태인 경우
 		_ = cb.setState(StateOpen) // open 상태로 전환한다.
 		go cb.checkOpenTimeout()   // open 상태에서 half open 상태로 전환되기 위한 시간을 체크하는 goroutine을 실행한다.
+	}
+}
+
+func (cb *CircuitBreaker) resetCounterInterval() {
+	ticker := time.NewTicker(cb.clearInterval) // 서킷 브레이커의 counter를 초기화하는 주기를 설정한다.
+
+	for range ticker.C {
+		cb.mu.RLock()
+		// 서킷 브레이커가 closed 상태가 아니라면 goroutine을 종료한다.
+		if cb.state != StateClosed {
+			cb.mu.RUnlock()
+			ticker.Stop()
+			return
+		}
+		cb.mu.RUnlock()
+
+		cb.mu.Lock()
+		cb.counter.reset() // 카운터를 초기화한다.
+		cb.mu.Unlock()
+
+		slog.Info("Successfully reset circuit breaker counter")
 	}
 }
 

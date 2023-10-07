@@ -55,7 +55,8 @@ func (s *proxyServer) handler() http.Handler {
 func main() {
 	// 서킷 브레이커 생성
 	cb := circuitbreaker.New(
-		circuitbreaker.WithOpenTimeout(5*time.Second), // open 상태에서 half open 상태로 전환되기 위한 시간을 5초로 설정
+		circuitbreaker.WithClearInterval(10*time.Second), // 서킷 브레이커의 counter를 초기화하는 주기를 10초로 설정
+		circuitbreaker.WithOpenTimeout(5*time.Second),    // open 상태에서 half open 상태로 전환되기 위한 시간을 5초로 설정
 		circuitbreaker.WithStateChangeHook(
 			func(from, to circuitbreaker.State) {
 				slog.Info("state change", slog.String("from", from.String()), slog.String("to", to.String()))
