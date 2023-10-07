@@ -3,6 +3,7 @@ package circuitbreaker
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -40,6 +41,8 @@ func New(opts ...Option) *CircuitBreaker {
 	for _, opt := range opts {
 		opt(cb)
 	}
+
+	go cb.resetCounterInterval()
 
 	return cb
 }
@@ -114,6 +117,8 @@ func (cb *CircuitBreaker) resetCounterInterval() {
 		cb.mu.Lock()
 		cb.reset()
 		cb.mu.Unlock()
+
+		slog.Info("Successfully reset circuit breaker counter")
 	}
 }
 
@@ -140,7 +145,6 @@ func (cb *CircuitBreaker) checkOpenTimeout() {
 	cb.mu.Lock()
 	_ = cb.setState(StateHalfOpen)
 	cb.mu.Unlock()
-
 }
 
 func (cb *CircuitBreaker) Reset() {
@@ -175,14 +179,16 @@ func (cb *CircuitBreaker) setStateWithLock(state State) bool {
 	return cb.setState(state)
 }
 
-func (cb *CircuitBreaker) setState(state State) bool {
-	if cb.state == state {
+func (cb *CircuitBreaker) setState(newState State) bool {
+	current := cb.state
+
+	if current == newState {
 		return false
 	}
 
-	cb.state = state
+	cb.state = newState
 	if cb.onStateChange != nil {
-		cb.onStateChange(cb.state, state)
+		cb.onStateChange(current, newState)
 	}
 
 	return true
