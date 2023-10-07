@@ -8,6 +8,7 @@
 2. [TCP 채팅 서버](#2-tcp-채팅-서버)
 3. [식사하는 철학자들 문제](#3-식사하는-철학자들-문제)
 4. [잠자는 이발사 문제](#4-잠자는-이발사-문제)
+5. [서킷 브레이커](#5-서킷-브레이커)
 
 ## 1. 간단한 TCP 서버
 
@@ -36,3 +37,10 @@
 |---|---|
 |Code|https://github.com/piatoss3612/practical-go/tree/04-sleeping-barber|
 |Blog|https://piatoss3612.tistory.com/28|
+
+## 5. 서킷 브레이커
+
+|Content|Link|
+|---|---|
+|Code|https://github.com/piatoss3612/practical-go/tree/05-circuit-breaker|
+|Blog|https://piatoss3612.tistory.com/38|
