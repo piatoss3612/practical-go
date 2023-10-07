@@ -6,7 +6,7 @@ var (
 	DefaultHalfOpenMaxSuccesses = uint32(5)
 	DefaultClearInterval        = 1 * time.Second
 	DefaultOpenTimeout          = 60 * time.Second
-	DefaultShouldTrip           = func(c Counter) bool {
+	DefaultTrip                 = func(c Counter) bool {
 		return c.TotalFailures > 5
 	}
 	DefaultOnStateChange = func(from, to State) {}
@@ -34,7 +34,7 @@ func WithOpenTimeout(d time.Duration) Option {
 
 func WithTripFunc(f TripFunc) Option {
 	return func(c *CircuitBreaker) {
-		c.shouldTrip = f
+		c.trip = f
 	}
 }
 
@@ -49,7 +49,7 @@ func WithDefaultOptions() Option {
 		c.halfOpenMaxSuccesses = DefaultHalfOpenMaxSuccesses
 		c.clearInterval = DefaultClearInterval
 		c.openTimeout = DefaultOpenTimeout
-		c.shouldTrip = DefaultShouldTrip
+		c.trip = DefaultTrip
 		c.onStateChange = DefaultOnStateChange
 	}
 }
