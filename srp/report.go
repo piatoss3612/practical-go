@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var ReportFormat = "title: %s\ncontent: %s"
+var ReportFormat = "%s\n%s"
 
 // Report는 보고서의 내용을 담는 구조체
 type Report struct {
@@ -22,8 +22,8 @@ func NewReport(title, content string) Report {
 	}
 }
 
-// FormatReport는 보고서를 형식에 맞게 출력함.
-func (r *Report) FormatReport() string {
+// String은 보고서의 내용을 문자열로 반환함. (Stringer 인터페이스 구현)
+func (r *Report) String() string {
 	return fmt.Sprintf(ReportFormat, r.Title, r.Content)
 }
 
@@ -37,7 +37,7 @@ func (rs *ReportSaver) SaveToFile(r Report, filename string) error {
 	}
 	defer file.Close()
 
-	fileContent := fmt.Sprintf("%s\n%s", r.Title, r.Content)
+	fileContent := r.String()
 
 	_, err = file.WriteString(fileContent)
 	if err != nil {
