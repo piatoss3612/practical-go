@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package todo.v1;
+
+// option go_package = "./todo/v1;todo";
+
+message Todo {
+    string id = 1;
+    string title = 2;
+    string description = 3;
+    Priority priority = 4;
+    bool done = 5;
+}
+
+enum Priority {
+    UNKNOWN = 0;
+    LOW = 1;
+    MEDIUM = 2;
+    HIGH = 3;
+}
+
+message CreateTodoRequest {
+    string title = 1;
+    string description = 2;
+    Priority priority = 3;
+}
+
+message GetTodoRequest {
+    string id = 1;
+}
+
+message UpdateTodoRequest {
+    string id = 1;
+    optional string title = 2;
+    optional string description = 3;
+    optional Priority priority = 4;
+    optional bool done = 5;
+}
+
+message UpdateTodoResponse {
+    int32 updated = 1;
+}
+
+message DeleteTodoRequest {
+    string id = 1;
+}
+
+message DeleteTodoResponse {
+    int32 deleted = 1;
+}
+
+message Empty {}
+
+service TodoService {
+    rpc Create(CreateTodoRequest) returns (Todo);
+    rpc CreateMany(stream CreateTodoRequest) returns (stream Todo);
+    rpc Get(GetTodoRequest) returns (Todo);
+    rpc GetAll(Empty) returns (stream Todo);
+    rpc Update(UpdateTodoRequest) returns (UpdateTodoResponse);
+    rpc UpdateMany(stream UpdateTodoRequest) returns (UpdateTodoResponse);
+    rpc Delete(DeleteTodoRequest) returns (DeleteTodoResponse);
+    rpc DeleteAll(Empty) returns (DeleteTodoResponse);
+}
+
+// this is a comment
+/* this is a comment */
