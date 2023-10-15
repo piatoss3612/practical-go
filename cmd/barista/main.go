@@ -14,13 +14,31 @@ func main() {
 	consumer := orderConsumer()
 	defer consumer.Close()
 
+	log.Println("Barista is ready to take orders")
+
 	producer := clientProducer()
 	defer producer.Close()
+
+	log.Println("Barista is ready to deliver orders")
 
 	err := consumer.SubscribeTopics([]string{event.OrderReceivedTopic}, nil)
 	if err != nil {
 		panic(err)
 	}
+
+	go func() {
+		// for async writes
+		for e := range producer.Events() {
+			switch ev := e.(type) {
+			case *kafka.Message:
+				if ev.TopicPartition.Error != nil {
+					log.Printf("Delivery failed: %v\n", ev.TopicPartition.Error)
+				} else {
+					log.Printf("Delivered message to %v\n", ev.TopicPartition)
+				}
+			}
+		}
+	}()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
@@ -71,9 +89,13 @@ func main() {
 				}
 
 				log.Printf("Order processed: %s\n", order.OrderID)
+
+				producer.Flush(15 * 1000)
 			}()
 		}
 	}
+
+	log.Println("Shutting down barista...")
 }
 
 func orderConsumer() *kafka.Consumer {
