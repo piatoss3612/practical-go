@@ -59,7 +59,7 @@ func main() {
 
 				err = producer.Produce(&kafka.Message{
 					TopicPartition: kafka.TopicPartition{
-						Topic:     &order.OrderID,
+						Topic:     &event.ClientTopic,
 						Partition: kafka.PartitionAny,
 					},
 					Key:   []byte(order.OrderID),

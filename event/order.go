@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	OrderTopic string = "order"
+	OrderTopic  string = "order"
+	ClientTopic string = "client"
 )
 
 type OrderStatus int
@@ -16,6 +17,10 @@ const (
 	OrderReceived OrderStatus = iota
 	OrderProcessed
 )
+
+func (os OrderStatus) String() string {
+	return [...]string{"OrderReceived", "OrderProcessed"}[os]
+}
 
 type Order struct {
 	OrderID string      `json:"order_id"`

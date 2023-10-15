@@ -75,7 +75,8 @@ func (c *Cashier) handleOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusAccepted)
-	w.Write([]byte("Order accepted"))
+	w.Header().Add("Content-Type", "application/json")
+	w.Write(val)
 }
 
 func main() {
