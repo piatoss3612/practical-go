@@ -2,7 +2,10 @@ module 08-event-driven-kafka
 
 go 1.21.0
 
-require github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
+require (
+	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
+	github.com/google/uuid v1.3.0
+)
 
 require (
 	golang.org/x/net v0.17.0 // indirect
