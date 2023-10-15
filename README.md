@@ -9,6 +9,9 @@
 3. [식사하는 철학자들 문제](#3-식사하는-철학자들-문제)
 4. [잠자는 이발사 문제](#4-잠자는-이발사-문제)
 5. [서킷 브레이커](#5-서킷-브레이커)
+6. [gRPC](#6-grpc)
+7. [SOLID 원칙](#7-solid-원칙)
+8. [이벤트 기반 아파치 카프카](#8-이벤트-기반-아파치-카프카)
 
 ## 1. 간단한 TCP 서버
 
@@ -44,3 +47,24 @@
 |---|---|
 |Code|https://github.com/piatoss3612/practical-go/tree/05-circuit-breaker|
 |Blog|https://piatoss3612.tistory.com/38|
+
+## 6. gRPC
+
+|Content|Link|
+|---|---|
+|Code|https://github.com/piatoss3612/practical-go/tree/06-grpc-deep-dive|
+|Blog||
+
+## 7. SOLID 원칙
+
+|Content|Link|
+|---|---|
+|Code|https://github.com/piatoss3612/practical-go/tree/07-SOLID|
+|Blog|https://piatoss3612.tistory.com/30|
+
+## 8. 이벤트 기반 아파치 카프카
+
+|Content|Link|
+|---|---|
+|Code|https://github.com/piatoss3612/practical-go/tree/08-event-driven-kafka|
+|Blog|https://piatoss3612.tistory.com/51|
