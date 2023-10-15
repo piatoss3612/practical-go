@@ -8,13 +8,13 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
 
-type Cashier struct {
+type Counter struct {
 	*http.Server
 	producer *kafka.Producer
 }
 
-func NewCashier(addr string, producer *kafka.Producer) *Cashier {
-	c := &Cashier{
+func NewCounter(addr string, producer *kafka.Producer) *Counter {
+	c := &Counter{
 		producer: producer,
 	}
 
@@ -26,7 +26,7 @@ func NewCashier(addr string, producer *kafka.Producer) *Cashier {
 	return c
 }
 
-func (c *Cashier) takeOrder(w http.ResponseWriter, r *http.Request) {
+func (c *Counter) takeOrder(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		c.handleOrder(w, r)
@@ -35,7 +35,7 @@ func (c *Cashier) takeOrder(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (c *Cashier) handleOrder(w http.ResponseWriter, r *http.Request) {
+func (c *Counter) handleOrder(w http.ResponseWriter, r *http.Request) {
 	amount := r.URL.Query().Get("amount")
 	if amount == "" {
 		http.Error(w, "Missing amount", http.StatusBadRequest)
@@ -63,7 +63,7 @@ func (c *Cashier) handleOrder(w http.ResponseWriter, r *http.Request) {
 
 	err = c.producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{
-			Topic:     &event.OrderTopic,
+			Topic:     &event.OrderReceivedTopic,
 			Partition: kafka.PartitionAny,
 		},
 		Key:   []byte(order.OrderID),
@@ -87,7 +87,7 @@ func main() {
 		panic(err)
 	}
 
-	cashier := NewCashier(":8080", producer)
+	cashier := NewCounter(":8080", producer)
 	if err := cashier.ListenAndServe(); err != nil {
 		panic(err)
 	}

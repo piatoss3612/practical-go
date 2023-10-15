@@ -17,7 +17,7 @@ func main() {
 	producer := clientProducer()
 	defer producer.Close()
 
-	err := consumer.SubscribeTopics([]string{event.OrderTopic}, nil)
+	err := consumer.SubscribeTopics([]string{event.OrderReceivedTopic}, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +59,7 @@ func main() {
 
 				err = producer.Produce(&kafka.Message{
 					TopicPartition: kafka.TopicPartition{
-						Topic:     &event.ClientTopic,
+						Topic:     &event.OrderProcessedTopic,
 						Partition: kafka.PartitionAny,
 					},
 					Key:   []byte(order.OrderID),

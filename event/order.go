@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	OrderTopic  string = "order"
-	ClientTopic string = "client"
+	OrderReceivedTopic  string = "order.received"
+	OrderProcessedTopic string = "order.processed"
 )
 
 type OrderStatus int

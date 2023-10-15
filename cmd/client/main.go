@@ -24,9 +24,7 @@ func main() {
 	consumer := clientConsumer()
 	defer consumer.Close()
 
-	orderChan := make(chan event.Order)
-
-	err := consumer.SubscribeTopics([]string{event.ClientTopic}, nil)
+	err := consumer.SubscribeTopics([]string{event.OrderProcessedTopic}, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -34,7 +32,6 @@ func main() {
 	stopChan := make(chan struct{})
 
 	go func() {
-		orders := make(map[string]event.Order)
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt)
 
@@ -44,15 +41,6 @@ func main() {
 				log.Println("Shutting down client...")
 				close(stopChan)
 				return
-			case order := <-orderChan:
-				_, ok := orders[order.OrderID]
-				if !ok {
-					orders[order.OrderID] = order
-					continue
-				}
-
-				log.Printf("Order ID %s is ready for pickup. Enjoy your coffee!\n", order.OrderID)
-				delete(orders, order.OrderID)
 			default:
 				msg, err := consumer.ReadMessage(100 * time.Millisecond)
 				if err != nil {
@@ -67,14 +55,7 @@ func main() {
 					continue
 				}
 
-				_, ok := orders[order.OrderID]
-				if !ok {
-					orderChan <- order
-					continue
-				}
-
 				log.Printf("Order ID %s is ready for pickup. Enjoy your coffee!\n", order.OrderID)
-				delete(orders, order.OrderID)
 			}
 		}
 	}()
@@ -107,8 +88,6 @@ func main() {
 			}
 
 			log.Printf("Order accepted: %s\n", order.OrderID)
-
-			orderChan <- order
 		}()
 
 		time.Sleep(1 * time.Second)
