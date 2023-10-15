@@ -65,7 +65,7 @@ func main() {
 			log.Printf("Order received: %s\n", order.OrderID)
 
 			go func() {
-				time.Sleep(5 * time.Second)
+				time.Sleep(time.Duration(order.Amount) * time.Second)
 
 				order.Status = event.OrderProcessed
 
