@@ -87,15 +87,13 @@ func (c *Counter) handleOrder(w http.ResponseWriter, r *http.Request) {
 
 	if m.TopicPartition.Error != nil {
 		http.Error(w, "Failed to produce message", http.StatusInternalServerError)
-		return
 	} else {
 		log.Printf("Produced message to topic %s [%d] at offset %v\n",
 			*m.TopicPartition.Topic, m.TopicPartition.Partition, m.TopicPartition.Offset)
+		w.WriteHeader(http.StatusAccepted)
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(val)
 	}
-
-	w.WriteHeader(http.StatusAccepted)
-	w.Header().Add("Content-Type", "application/json")
-	w.Write(val)
 }
 
 func main() {
