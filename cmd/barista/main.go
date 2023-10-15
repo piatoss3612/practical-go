@@ -11,12 +11,12 @@ import (
 )
 
 func main() {
-	consumer := orderConsumer()
+	consumer := newConsumer()
 	defer consumer.Close()
 
 	log.Println("Barista is ready to take orders")
 
-	producer := clientProducer()
+	producer := newProducer()
 	defer producer.Close()
 
 	log.Println("Barista is ready to deliver orders")
@@ -98,7 +98,7 @@ func main() {
 	log.Println("Shutting down barista...")
 }
 
-func orderConsumer() *kafka.Consumer {
+func newConsumer() *kafka.Consumer {
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":     "localhost:9092",
 		"group.id":              "barista_group",
@@ -112,7 +112,7 @@ func orderConsumer() *kafka.Consumer {
 	return consumer
 }
 
-func clientProducer() *kafka.Producer {
+func newProducer() *kafka.Producer {
 	producer, err := kafka.NewProducer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost:9092",
 	})

@@ -21,7 +21,7 @@ func main() {
 
 	log.Printf("Starting %d clients\n", *c)
 
-	consumer := clientConsumer()
+	consumer := newConsumer()
 	defer consumer.Close()
 
 	err := consumer.SubscribeTopics([]string{event.OrderProcessedTopic}, nil)
@@ -96,7 +96,7 @@ func main() {
 	<-stopChan
 }
 
-func clientConsumer() *kafka.Consumer {
+func newConsumer() *kafka.Consumer {
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost:9092",
 		"group.id":          "client_group",
