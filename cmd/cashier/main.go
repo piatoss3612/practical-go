@@ -53,10 +53,7 @@ func (c *Cashier) handleOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	order := event.Order{
-		OrderID: event.NewUUID(),
-		Amount:  numAmount,
-	}
+	order := event.NewOrder(numAmount)
 
 	val, err := order.MarshalBinary()
 	if err != nil {
@@ -64,11 +61,9 @@ func (c *Cashier) handleOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topic := string(event.OrderTopic)
-
 	err = c.producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{
-			Topic:     &topic,
+			Topic:     &event.OrderTopic,
 			Partition: kafka.PartitionAny,
 		},
 		Key:   []byte(order.OrderID),
