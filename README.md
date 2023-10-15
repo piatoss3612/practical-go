@@ -18,14 +18,12 @@
 |Content|Link|
 |---|---|
 |Code|https://github.com/piatoss3612/practical-go/tree/01-tcp|
-|Blog||
 
 ## 2. TCP 채팅 서버
 
 |Content|Link|
 |---|---|
 |Code|https://github.com/piatoss3612/practical-go/tree/02-tcp-chat|
-|Blog||
 
 ## 3. 식사하는 철학자들 문제
 
@@ -53,7 +51,7 @@
 |Content|Link|
 |---|---|
 |Code|https://github.com/piatoss3612/practical-go/tree/06-grpc-deep-dive|
-|Blog||
+|Blog|https://piatoss3612.tistory.com/44|
 
 ## 7. SOLID 원칙
 
