@@ -15,6 +15,8 @@ func GracefulShutdown(fn func(), sigs ...os.Signal) <-chan struct{} {
 	go func() {
 		<-sigChan
 
+		signal.Stop(sigChan)
+
 		fn()
 
 		close(sigChan)
