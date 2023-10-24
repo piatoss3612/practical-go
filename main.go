@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"syscall"
-	"time"
 
 	_ "github.com/glebarez/go-sqlite"
 )
@@ -39,10 +38,7 @@ func main() {
 		}
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	ctx2, cancel2 := GracefulShutdownCtx(ctx, func() {
+	stop := GracefulShutdown(func() {
 		// 3. 서버 종료
 		log.Println("Shutting down server...")
 		if err := srv.Shutdown(context.Background()); err != nil {
@@ -58,9 +54,8 @@ func main() {
 
 		log.Println("Server shutdown complete")
 	}, syscall.SIGINT, syscall.SIGTERM)
-	defer cancel2()
 
-	<-ctx2.Done()
+	<-stop
 }
 
 type Server struct {
