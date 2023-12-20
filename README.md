@@ -13,6 +13,8 @@
 7. [SOLID 원칙](#7-solid-원칙)
 8. [이벤트 기반 아파치 카프카](#8-이벤트-기반-아파치-카프카)
 9. [우아하게 종료하기](#9-우아하게-종료하기)
+10. [Vault 알아보기](#10-vault-알아보기)
+11. [MongoDB](#11-mongodb)
 
 ## 1. 간단한 TCP 서버
 
@@ -74,3 +76,17 @@
 |---|---|
 |Code|https://github.com/piatoss3612/practical-go/tree/09-graceful-shutdown|
 |Blog|https://piatoss3612.tistory.com/60|
+
+## 10. Vault 알아보기
+
+|Content|Link|
+|---|---|
+|Code|https://github.com/piatoss3612/practical-go/tree/10-vault|
+|Blog|https://piatoss3612.tistory.com/61|
+
+## 11. MongoDB
+
+|Content|Link|
+|---|---|
+|Code|https://github.com/piatoss3612/practical-go/tree/11-mongodb|
+|Blog||
