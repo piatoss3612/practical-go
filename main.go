@@ -7,20 +7,21 @@ import (
 	"os/signal"
 	"syscall"
 
-	_ "github.com/joho/godotenv/autoload"
 	"github.com/tmc/langchaingo/llms/openai"
 )
 
 func main() {
-	var redisURL string
-
-	if os.Getenv("GO_ENV") == "docker" {
-		redisURL = os.Getenv("DOCKER_REDIS_URL")
-	} else {
-		redisURL = os.Getenv("REDIS_URL")
+	cfg, err := NewConfig()
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	cache, err := NewRedisCache(context.Background(), redisURL)
+	cache, err := NewRedisCache(context.Background(), func() string {
+		if cfg.GoEnv == "docker" {
+			return cfg.DockerRedisURL
+		}
+		return cfg.RedisURL
+	}())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -35,7 +36,7 @@ func main() {
 	_ = NewSummarizer(llm, cache)
 	_ = NewTokenPostScraper(true)
 
-	bot, err := NewBot(os.Getenv("DISCORD_BOT_TOKEN"))
+	bot, err := NewBot(cfg.DiscordBotToken)
 	if err != nil {
 		log.Fatal(err)
 	}
