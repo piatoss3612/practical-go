@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -38,7 +39,7 @@ func ScrapeTokenPost(logging bool) (<-chan *Post, <-chan struct{}, <-chan error)
 		errs <- err
 	})
 
-	c.OnHTML("div.list_item_title", func(e *colly.HTMLElement) {
+	c.OnHTML(`div[id=content] div.list_item_title`, func(e *colly.HTMLElement) {
 		postURL := e.Request.AbsoluteURL(e.ChildAttr("a", "href"))
 		if postURL == "" {
 			return
@@ -66,31 +67,40 @@ func ScrapeTokenPost(logging bool) (<-chan *Post, <-chan struct{}, <-chan error)
 		}
 	})
 
-	detailCollector.OnHTML("div#articleContentArea", func(e *colly.HTMLElement) {
+	detailCollector.OnHTML(`div[id=content] div[id=articleContentArea]`, func(e *colly.HTMLElement) {
+		categories := e.ChildTexts("div.view_blockchain_item > span")
 		title := e.ChildText("span.view_top_title")
+		thumbnail := e.ChildAttr("div.imgBox > img", "src")
 
 		builder := strings.Builder{}
 
-		contents := e.ChildTexts("div.article_content > p")
-
-		for i := 0; i < len(contents); i++ {
-			content := strings.TrimSpace(contents[i])
+		e.ForEach("div.article_content > p", func(_ int, h *colly.HTMLElement) {
+			content := strings.TrimSpace(h.Text)
 			if content == "" {
-				continue
+				return
 			}
 
 			if strings.Contains(content, "[email") {
-				continue
+				return
 			}
 
-			builder.WriteString(contents[i])
-			builder.WriteString("\n")
-		}
+			strongs := h.ChildTexts("strong")
+
+			if len(strongs) > 0 {
+				for _, strong := range strongs {
+					content = strings.ReplaceAll(content, strong, fmt.Sprintf("**%s**", strong))
+				}
+			}
+
+			builder.WriteString(fmt.Sprintf("%s\n\n", content))
+		})
 
 		posts <- &Post{
-			Title:    title,
-			URL:      e.Request.URL.String(),
-			Contents: builder.String(),
+			Title:      title,
+			Categories: categories,
+			URL:        e.Request.URL.String(),
+			Thumbnail:  thumbnail,
+			Contents:   builder.String(),
 		}
 	})
 
@@ -98,6 +108,7 @@ func ScrapeTokenPost(logging bool) (<-chan *Post, <-chan struct{}, <-chan error)
 
 	go func() {
 		c.Visit("https://www.tokenpost.kr/blockchain")
+
 		c.Wait()
 		detailCollector.Wait()
 
