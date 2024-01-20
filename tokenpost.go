@@ -14,12 +14,24 @@ const (
 	TokenPostCacheDir = "./tokenpost_cache"
 )
 
-func ScrapeTokenPost(logging bool) (<-chan *Post, <-chan struct{}, <-chan error) {
-	c := colly.NewCollector(
-		colly.AllowedDomains("www.tokenpost.kr", "tokenpost.kr"),
-		colly.CacheDir(TokenPostCacheDir),
-		colly.Async(),
-	)
+type TokenPostScraper struct {
+	*colly.Collector
+	logging bool
+}
+
+func NewTokenPostScraper(logging bool) *TokenPostScraper {
+	return &TokenPostScraper{
+		Collector: colly.NewCollector(
+			colly.AllowedDomains("www.tokenpost.kr", "tokenpost.kr"),
+			colly.CacheDir(TokenPostCacheDir),
+			colly.Async(),
+		),
+		logging: logging,
+	}
+}
+
+func (s *TokenPostScraper) Scrape() (<-chan *Post, <-chan struct{}, <-chan error) {
+	c := s.Collector
 
 	errs := make(chan error)
 	posts := make(chan *Post)
@@ -27,16 +39,9 @@ func ScrapeTokenPost(logging bool) (<-chan *Post, <-chan struct{}, <-chan error)
 	detailCollector := c.Clone()
 
 	c.OnRequest(func(r *colly.Request) {
-		if logging {
+		if s.logging {
 			log.Println("Visiting", r.URL.String())
 		}
-	})
-
-	c.OnError(func(r *colly.Response, err error) {
-		if logging {
-			log.Println("Error:", r.StatusCode, err)
-		}
-		errs <- err
 	})
 
 	c.OnHTML(`div[id=content] div.list_item_title`, func(e *colly.HTMLElement) {
@@ -48,29 +53,22 @@ func ScrapeTokenPost(logging bool) (<-chan *Post, <-chan struct{}, <-chan error)
 		detailCollector.Visit(postURL)
 	})
 
-	detailCollector.OnRequest(func(r *colly.Request) {
-		if logging {
-			log.Println("Visiting", r.URL.String())
-		}
-	})
-
-	detailCollector.OnError(func(r *colly.Response, err error) {
-		if logging {
-			log.Println("Error:", r.StatusCode, err)
-		}
-		errs <- err
-	})
-
-	detailCollector.OnScraped(func(r *colly.Response) {
-		if logging {
+	c.OnScraped(func(r *colly.Response) {
+		if s.logging {
 			log.Println("Finished", r.Request.URL.String())
+		}
+	})
+
+	detailCollector.OnRequest(func(r *colly.Request) {
+		if s.logging {
+			log.Println("Visiting", r.URL.String())
 		}
 	})
 
 	detailCollector.OnHTML(`div[id=content] div[id=articleContentArea]`, func(e *colly.HTMLElement) {
 		categories := e.ChildTexts("div.view_blockchain_item > span")
 		title := e.ChildText("span.view_top_title")
-		thumbnail := e.ChildAttr("div.imgBox > img", "src")
+		img := e.ChildAttr("div.imgBox > img", "src")
 
 		builder := strings.Builder{}
 
@@ -99,8 +97,14 @@ func ScrapeTokenPost(logging bool) (<-chan *Post, <-chan struct{}, <-chan error)
 			Title:      title,
 			Categories: categories,
 			URL:        e.Request.URL.String(),
-			Thumbnail:  thumbnail,
+			Image:      img,
 			Contents:   builder.String(),
+		}
+	})
+
+	detailCollector.OnScraped(func(r *colly.Response) {
+		if s.logging {
+			log.Println("Finished", r.Request.URL.String())
 		}
 	})
 
@@ -120,6 +124,10 @@ func ScrapeTokenPost(logging bool) (<-chan *Post, <-chan struct{}, <-chan error)
 	return posts, done, errs
 }
 
-func RemoveTokenPostCache() error {
+func (s *TokenPostScraper) ClearCache() error {
 	return os.RemoveAll(TokenPostCacheDir)
+}
+
+func (s *TokenPostScraper) Close() error {
+	return s.ClearCache()
 }
