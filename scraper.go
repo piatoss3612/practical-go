@@ -14,6 +14,11 @@ const (
 	TokenPostCacheDir = "./tokenpost_cache"
 )
 
+type Scraper interface {
+	Scrape() (<-chan *Post, <-chan struct{}, <-chan error)
+	Close() error
+}
+
 type TokenPostScraper struct {
 	*colly.Collector
 	logging bool
@@ -67,8 +72,8 @@ func (s *TokenPostScraper) Scrape() (<-chan *Post, <-chan struct{}, <-chan error
 
 	detailCollector.OnHTML(`div[id=content] div[id=articleContentArea]`, func(e *colly.HTMLElement) {
 		categories := e.ChildTexts("div.view_blockchain_item > span")
-		title := e.ChildText("span.view_top_title")
-		img := e.ChildAttr("div.imgBox > img", "src")
+		title := strings.TrimSpace(e.ChildText("span.view_top_title"))
+		img := strings.TrimSpace(e.ChildAttr("div.imgBox > img", "src"))
 
 		builder := strings.Builder{}
 
@@ -94,6 +99,7 @@ func (s *TokenPostScraper) Scrape() (<-chan *Post, <-chan struct{}, <-chan error
 		})
 
 		posts <- &Post{
+			ID:         fmt.Sprintf("TokenPost%s", e.Request.URL.Path),
 			Title:      title,
 			Categories: categories,
 			URL:        e.Request.URL.String(),
@@ -130,4 +136,23 @@ func (s *TokenPostScraper) ClearCache() error {
 
 func (s *TokenPostScraper) Close() error {
 	return s.ClearCache()
+}
+
+type Post struct {
+	ID         string   `json:"id"`
+	Title      string   `json:"title"`
+	URL        string   `json:"url"`
+	Categories []string `json:"categories"`
+	Image      string   `json:"image"`
+	Contents   string   `json:"contents"`
+	Summary    string   `json:"summary"`
+	Summarized bool     `json:"summarized"`
+}
+
+func (p Post) String() string {
+	return fmt.Sprintf("제목: %s\n카테고리: %s\nURL: %s\n이미지: %s\n내용:\n%s\n요약:\n%s\n", p.Title, strings.Join(p.Categories, ", "), p.URL, p.Image, p.Contents, p.Summary)
+}
+
+func (p Post) FormatSummarizable() string {
+	return fmt.Sprintf("제목: %s\n카테고리: %s\n내용:\n%s\n", p.Title, strings.Join(p.Categories, ", "), p.Contents)
 }
