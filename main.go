@@ -2,91 +2,82 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"sync"
+	"os"
+	"os/signal"
+	"syscall"
 
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/tmc/langchaingo/llms/openai"
 )
 
 func main() {
-	// _, err := NewCache(context.Background(), "localhost:6379")
-	// if err != nil {
-	// 	panic(err)
-	// }
+	var redisURL string
+
+	if os.Getenv("GO_ENV") == "docker" {
+		redisURL = os.Getenv("DOCKER_REDIS_URL")
+	} else {
+		redisURL = os.Getenv("REDIS_URL")
+	}
+
+	cache, err := NewRedisCache(context.Background(), redisURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Connected to Redis")
 
 	llm, err := openai.NewChat()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cache := NewInMemoryCache()
+	_ = NewSummarizer(llm, cache)
+	_ = NewTokenPostScraper(true)
 
-	summarizer := NewSummarizer(llm, cache)
-
-	scraper := NewTokenPostScraper(true)
-
-	posts, done, errs := scraper.Scrape()
-
-	stop := make(chan struct{})
-	summaries := make(chan *Post)
-
-	go func() {
-		defer close(stop)
-
-		for s := range summaries {
-			fmt.Println("========================================")
-			fmt.Println(s)
-			fmt.Println("========================================")
-		}
-	}()
-
-	cnt := 0
-	ctx := context.Background()
-	wg := sync.WaitGroup{}
-
-scraper:
-	for {
-		select {
-		case post := <-posts:
-			if post == nil {
-				continue
-			}
-
-			if cnt == 1 {
-				continue
-			}
-
-			cnt++
-
-			wg.Add(1)
-
-			go func() {
-				defer wg.Done()
-
-				err := summarizer.Summarize(ctx, post)
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-
-				summaries <- post
-			}()
-		case err := <-errs:
-			if err == nil {
-				continue
-			}
-			fmt.Println(err)
-		case <-done:
-			fmt.Println("Done")
-			break scraper
-		}
+	bot, err := NewBot(os.Getenv("DISCORD_BOT_TOKEN"))
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	wg.Wait()
+	err = bot.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	close(summaries)
+	log.Println("Bot is running")
 
-	<-stop
+	<-GracefulShutdown(func() {
+		err := bot.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}, syscall.SIGINT, syscall.SIGTERM)
+
+	log.Println("Gracefully shutdown")
+}
+
+func GracefulShutdown(fn func(), sig ...os.Signal) <-chan struct{} {
+	stop := make(chan struct{})
+	sigChan := make(chan os.Signal, 1)
+
+	sigs := sig
+	if len(sigs) == 0 {
+		sigs = []os.Signal{os.Interrupt}
+	}
+
+	signal.Notify(sigChan, sigs...)
+
+	go func() {
+		<-sigChan
+
+		signal.Stop(sigChan)
+
+		fn()
+
+		close(sigChan)
+		close(stop)
+	}()
+
+	return stop
 }

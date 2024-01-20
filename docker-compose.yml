@@ -1,5 +1,19 @@
 version: '3.9'
 services:
+  bot:
+    container_name: bot
+    build:
+      context: .
+      target: final
+    restart: always
+    labels:
+      - "name=bot"
+    env_file:
+      - .env
+    environment:
+      - GO_ENV=docker
+    depends_on:
+      - redis
 
   redis:
     container_name: redis
