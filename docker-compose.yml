@@ -8,8 +8,8 @@ services:
     restart: always
     labels:
       - "name=bot"
-    env_file:
-      - .env
+    volumes:
+      - ./.env:/.env
     environment:
       - GO_ENV=docker
     depends_on:

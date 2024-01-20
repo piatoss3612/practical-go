@@ -1,26 +1,36 @@
 package main
 
-import "github.com/spf13/viper"
+import (
+	"os"
+
+	"github.com/joho/godotenv"
+)
 
 type Config struct {
-	RedisURL        string `mapstructure:"REDIS_URL"`
-	DockerRedisURL  string `mapstructure:"DOCKER_REDIS_URL"`
-	GoEnv           string `mapstructure:"GO_ENV"`
-	DiscordBotToken string `mapstructure:"DISCORD_BOT_TOKEN"`
+	GoEnv           string
+	RedisURL        string
+	DockerRedisURL  string
+	DiscordBotToken string
 }
 
 func NewConfig() (*Config, error) {
-	viper.SetConfigFile(".env")
-
-	if err := viper.ReadInConfig(); err != nil {
+	err := godotenv.Load()
+	if err != nil {
 		return nil, err
 	}
 
-	var config Config
+	return &Config{
+		GoEnv:           getEnv("GO_ENV", "development"),
+		RedisURL:        getEnv("REDIS_URL", "localhost:6379"),
+		DockerRedisURL:  getEnv("DOCKER_REDIS_URL", "redis:6379"),
+		DiscordBotToken: getEnv("DISCORD_BOT_TOKEN", ""),
+	}, nil
+}
 
-	if err := viper.Unmarshal(&config); err != nil {
-		return nil, err
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
 	}
 
-	return &config, nil
+	return fallback
 }
