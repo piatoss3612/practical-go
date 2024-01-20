@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/gocolly/colly/v2"
 )
@@ -18,6 +17,7 @@ func ScrapeTokenPost(logging bool) (<-chan *Post, <-chan struct{}, <-chan error)
 	c := colly.NewCollector(
 		colly.AllowedDomains("www.tokenpost.kr", "tokenpost.kr"),
 		colly.CacheDir(TokenPostCacheDir),
+		colly.Async(),
 	)
 
 	errs := make(chan error)
@@ -44,7 +44,7 @@ func ScrapeTokenPost(logging bool) (<-chan *Post, <-chan struct{}, <-chan error)
 			return
 		}
 
-		go detailCollector.Visit(postURL)
+		detailCollector.Visit(postURL)
 	})
 
 	detailCollector.OnRequest(func(r *colly.Request) {
@@ -97,13 +97,8 @@ func ScrapeTokenPost(logging bool) (<-chan *Post, <-chan struct{}, <-chan error)
 	done := make(chan struct{})
 
 	go func() {
-		err := c.Visit("https://www.tokenpost.kr/blockchain")
-		if err != nil {
-			errs <- err
-		}
-
-		time.Sleep(1 * time.Second)
-
+		c.Visit("https://www.tokenpost.kr/blockchain")
+		c.Wait()
 		detailCollector.Wait()
 
 		close(done)
