@@ -1,21 +1,28 @@
 package main
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"fmt"
+
+	"github.com/bwmarrin/discordgo"
+)
 
 type Bot struct {
-	session        *discordgo.Session
-	commandHandler map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)
+	session  *discordgo.Session
+	registry CommandRegistrar
+
+	logging bool
 }
 
-func NewBot(token string) (*Bot, error) {
+func NewBot(token string, logging bool) (*Bot, error) {
 	session, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Bot{
-		session:        session,
-		commandHandler: make(map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)),
+		session:  session,
+		registry: NewCommandRegistry(session),
+		logging:  logging,
 	}, nil
 }
 
@@ -24,14 +31,41 @@ func (b *Bot) setup() error {
 		discordgo.IntentGuilds | discordgo.IntentDirectMessages
 
 	b.session.AddHandler(b.ready)
+	b.session.AddHandler(b.guildCreate)
+	b.session.AddHandler(b.guildDelete)
 	b.session.AddHandler(b.handleApplicationCommand)
 
-	// TODO: Register command
 	return nil
 }
 
 func (b *Bot) ready(s *discordgo.Session, _ *discordgo.Ready) {
 	_ = s.UpdateGameStatus(0, "초기화하는 중...")
+}
+
+func (b *Bot) guildCreate(s *discordgo.Session, g *discordgo.GuildCreate) {
+	if g.Unavailable {
+		return
+	}
+
+	err := s.UpdateGameStatus(0, fmt.Sprintf("%d개의 서버에서 대기", len(s.State.Guilds)))
+	if err != nil {
+		if b.logging {
+			Error("Failed to update game status", err)
+		}
+	}
+}
+
+func (b *Bot) guildDelete(s *discordgo.Session, g *discordgo.GuildDelete) {
+	if g.Unavailable {
+		return
+	}
+
+	err := s.UpdateGameStatus(0, fmt.Sprintf("%d개의 서버에서 대기", len(s.State.Guilds)))
+	if err != nil {
+		if b.logging {
+			Error("Failed to update game status", err)
+		}
+	}
 }
 
 func (b *Bot) handleApplicationCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -46,9 +80,7 @@ func (b *Bot) handleApplicationCommand(s *discordgo.Session, i *discordgo.Intera
 		return
 	}
 
-	if handler, ok := b.commandHandler[name]; ok {
-		handler(s, i)
-	}
+	b.registry.Handle(name, s, i)
 }
 
 func (b *Bot) Run() error {
@@ -63,5 +95,3 @@ func (b *Bot) Run() error {
 func (b *Bot) Close() error {
 	return b.session.Close()
 }
-
-// TODO: Add command and handler

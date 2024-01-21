@@ -45,7 +45,7 @@ func main() {
 
 	Info("Starting bot...")
 
-	bot, err := NewBot(cfg.DiscordBotToken)
+	bot, err := NewBot(cfg.DiscordBotToken, true)
 	if err != nil {
 		log.Fatal(err)
 	}
