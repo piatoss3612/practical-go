@@ -15,6 +15,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer Sync()
 
 	cfg, err := NewConfig()
 	if err != nil {
@@ -40,8 +41,21 @@ func main() {
 
 	Info("Successfully initialized llm chat")
 
-	_ = NewSummarizer(llm, cache)
-	_ = NewTokenPostScraper(true)
+	summarizer := NewSummarizer(llm, cache)
+	tokenPostScraper := NewTokenPostScraper(true)
+
+	summarized := make(chan *Post)
+
+	scheduler := NewScheduler(summarizer)
+
+	err = scheduler.AddScraper(tokenPostScraper, summarized, true)
+	if err != nil {
+		Fatal("Failed to add scraper", err)
+	}
+
+	Info("Successfully initialized scheduler")
+
+	scheduler.Start()
 
 	Info("Starting bot...")
 

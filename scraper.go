@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -28,7 +27,7 @@ func NewTokenPostScraper(logging bool) *TokenPostScraper {
 	return &TokenPostScraper{
 		Collector: colly.NewCollector(
 			colly.AllowedDomains("www.tokenpost.kr", "tokenpost.kr"),
-			colly.CacheDir(TokenPostCacheDir),
+			// colly.CacheDir(TokenPostCacheDir), // arising error in docker container (permission denied)
 			colly.Async(),
 		),
 		logging: logging,
@@ -45,7 +44,7 @@ func (s *TokenPostScraper) Scrape() (<-chan *Post, <-chan struct{}, <-chan error
 
 	c.OnRequest(func(r *colly.Request) {
 		if s.logging {
-			log.Println("Visiting", r.URL.String())
+			Info("Visiting", r.URL.String())
 		}
 	})
 
@@ -60,13 +59,13 @@ func (s *TokenPostScraper) Scrape() (<-chan *Post, <-chan struct{}, <-chan error
 
 	c.OnScraped(func(r *colly.Response) {
 		if s.logging {
-			log.Println("Finished", r.Request.URL.String())
+			Info("Finished", r.Request.URL.String())
 		}
 	})
 
 	detailCollector.OnRequest(func(r *colly.Request) {
 		if s.logging {
-			log.Println("Visiting", r.URL.String())
+			Info("Visiting", r.URL.String())
 		}
 	})
 
@@ -99,6 +98,7 @@ func (s *TokenPostScraper) Scrape() (<-chan *Post, <-chan struct{}, <-chan error
 		})
 
 		posts <- &Post{
+			Type:       PostTypeNews,
 			ID:         fmt.Sprintf("TokenPost%s", e.Request.URL.Path),
 			Title:      title,
 			Categories: categories,
@@ -110,7 +110,7 @@ func (s *TokenPostScraper) Scrape() (<-chan *Post, <-chan struct{}, <-chan error
 
 	detailCollector.OnScraped(func(r *colly.Response) {
 		if s.logging {
-			log.Println("Finished", r.Request.URL.String())
+			Info("Finished", r.Request.URL.String())
 		}
 	})
 
@@ -118,7 +118,6 @@ func (s *TokenPostScraper) Scrape() (<-chan *Post, <-chan struct{}, <-chan error
 
 	go func() {
 		c.Visit("https://www.tokenpost.kr/blockchain")
-
 		c.Wait()
 		detailCollector.Wait()
 
@@ -136,23 +135,4 @@ func (s *TokenPostScraper) ClearCache() error {
 
 func (s *TokenPostScraper) Close() error {
 	return s.ClearCache()
-}
-
-type Post struct {
-	ID         string   `json:"id"`
-	Title      string   `json:"title"`
-	URL        string   `json:"url"`
-	Categories []string `json:"categories"`
-	Image      string   `json:"image"`
-	Contents   string   `json:"contents"`
-	Summary    string   `json:"summary"`
-	Summarized bool     `json:"summarized"`
-}
-
-func (p Post) String() string {
-	return fmt.Sprintf("제목: %s\n카테고리: %s\nURL: %s\n이미지: %s\n내용:\n%s\n요약:\n%s\n", p.Title, strings.Join(p.Categories, ", "), p.URL, p.Image, p.Contents, p.Summary)
-}
-
-func (p Post) FormatSummarizable() string {
-	return fmt.Sprintf("제목: %s\n카테고리: %s\n내용:\n%s\n", p.Title, strings.Join(p.Categories, ", "), p.Contents)
 }
