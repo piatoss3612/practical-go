@@ -18,7 +18,7 @@ func main() {
 
 	cfg, err := NewConfig()
 	if err != nil {
-		Fatal(err.Error())
+		Fatal("Failed to load config", err)
 	}
 
 	cache, err := NewRedisCache(context.Background(), func() string {
@@ -28,14 +28,14 @@ func main() {
 		return cfg.RedisURL
 	}())
 	if err != nil {
-		Fatal(err.Error())
+		Fatal("Failed to connect to redis cache", err)
 	}
 
 	Info("Successfully connected to redis cache")
 
 	llm, err := openai.NewChat()
 	if err != nil {
-		log.Fatal(err)
+		Fatal("Failed to initialize llm chat", err)
 	}
 
 	Info("Successfully initialized llm chat")
@@ -47,22 +47,36 @@ func main() {
 
 	bot, err := NewBot(cfg.DiscordBotToken, true)
 	if err != nil {
-		log.Fatal(err)
+		Fatal("Failed to initialize bot", err)
 	}
 
-	err = bot.Run()
+	err = bot.Open()
 	if err != nil {
-		log.Fatal(err)
+		Fatal("Failed to open bot", err)
 	}
+
+	ping := PingCommand{}
+
+	err = bot.RegisterCommand(&ping)
+	if err != nil {
+		Fatal("Failed to register command", err)
+	}
+
+	Info("Successfully registered command")
 
 	Info("Bot is running")
 
 	<-GracefulShutdown(func() {
 		Info("Gracefully shutting down bot")
 
+		// err := bot.UnregisterCommands()
+		// if err != nil {
+		// 	Fatal("Failed to unregister commands", err)
+		// }
+
 		err := bot.Close()
 		if err != nil {
-			log.Fatal(err)
+			Fatal("Failed to close bot", err)
 		}
 	}, syscall.SIGINT, syscall.SIGTERM)
 

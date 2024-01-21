@@ -83,7 +83,7 @@ func (b *Bot) handleApplicationCommand(s *discordgo.Session, i *discordgo.Intera
 	b.registry.Handle(name, s, i)
 }
 
-func (b *Bot) Run() error {
+func (b *Bot) Open() error {
 	err := b.setup()
 	if err != nil {
 		return err
@@ -92,6 +92,14 @@ func (b *Bot) Run() error {
 	return b.session.Open()
 }
 
+func (b *Bot) RegisterCommand(command Commander) error {
+	return b.registry.Register(command)
+}
+
 func (b *Bot) Close() error {
 	return b.session.Close()
+}
+
+func (b *Bot) UnregisterCommands() error {
+	return b.registry.UnregisterAll()
 }
