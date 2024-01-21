@@ -11,9 +11,14 @@ import (
 )
 
 func main() {
-	cfg, err := NewConfig()
+	err := SetupLogger(false, "service", "crypto gopher")
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	cfg, err := NewConfig()
+	if err != nil {
+		Fatal(err.Error())
 	}
 
 	cache, err := NewRedisCache(context.Background(), func() string {
@@ -23,18 +28,22 @@ func main() {
 		return cfg.RedisURL
 	}())
 	if err != nil {
-		log.Fatal(err)
+		Fatal(err.Error())
 	}
 
-	log.Println("Connected to Redis")
+	Info("Successfully connected to redis cache")
 
 	llm, err := openai.NewChat()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	Info("Successfully initialized llm chat")
+
 	_ = NewSummarizer(llm, cache)
 	_ = NewTokenPostScraper(true)
+
+	Info("Starting bot...")
 
 	bot, err := NewBot(cfg.DiscordBotToken)
 	if err != nil {
@@ -46,16 +55,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("Bot is running")
+	Info("Bot is running")
 
 	<-GracefulShutdown(func() {
+		Info("Gracefully shutting down bot")
+
 		err := bot.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
 	}, syscall.SIGINT, syscall.SIGTERM)
 
-	log.Println("Gracefully shutdown")
+	Info("Bot has been shutdown")
 }
 
 func GracefulShutdown(fn func(), sig ...os.Signal) <-chan struct{} {
